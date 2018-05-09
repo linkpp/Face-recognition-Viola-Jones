@@ -47,7 +47,7 @@ def process_train(input_folder):
                 listlabels.append(label)
     
     listlabels = np.array(listlabels) #opencv face_recognizer.train must be numpy array
-    print(listlabels)
+    # print(listlabels)
 
     cv2.waitKey(1)
     cv2.destroyAllWindows()
@@ -55,34 +55,58 @@ def process_train(input_folder):
 
 
 
-def predict_img(imgfile):
+def predict_img(img):
 
-    label_name = ["Nga", "Linh"]
+    label_name = ["","Nga", "Linh"]
     
-    img = cv2.imread(imgfile)
-    print("process:"+ imgfile)
+    # img = cv2.imread(imgfile)
+    # print("process:"+ img)
     faces = face_dectect(img)
-    print("Detect faces:"+ imgfile)
+    # print("Detect faces:"+ imgfile)
 
     for (x,y,w,h) in faces:
         face_crop = img[y:y+h,x:x+w]
         face_crop = cv2.resize(face_crop, (100,100))
         face_crop = cv2.cvtColor(face_crop, cv2.COLOR_BGR2GRAY)
-        print(face_crop.shape)
         label, confidence = face_recognizer.predict(face_crop)
+        print("Detected: "+ label_name[label])
         cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
         cv2.putText(img, label_name[label], (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 255, 0), 2)
     
     cv2.imshow("img",img)
-    cv2.imwrite("out.jpg",img)
-    cv2.waitKey(1)
+    # cv2.imwrite("out.jpg",img)
+    
+def predict_camera():
+    
+    # fps = int(capture.get(cv2.CAP_PROP_FPS))
+    # fps = 1
+    count =0
+    capture = cv2.VideoCapture(0)
+    while(capture.isOpened()):
+        ret, frame = capture.read()
+        predict_img(frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    capture.release()
     cv2.destroyAllWindows()
 
 
+def train_and_save_model():
+    faces, labels = process_train("train/")
+    face_recognizer.train(faces, labels)
+    face_recognizer.write("train.yml")
 
-faces, labels = process_train("train/")
 
-face_recognizer = cv2.face.EigenFaceRecognizer_create()
+face_recognizer = cv2.face.LBPHFaceRecognizer_create()
+# face_recognizer = cv2.face.EigenFaceRecognizer_create()
+# face_recognizer = cv2.face.FisherFaceRecognizer_create()
 
-face_recognizer.train(faces, labels)
-predict_img("nga.jpg")
+# train_and_save_model()
+
+
+face_recognizer.read("train.yml")
+predict_camera()
+
+# imgfile = cv2.imread("linh.jpg")
+# predict_img(imgfile)
+
