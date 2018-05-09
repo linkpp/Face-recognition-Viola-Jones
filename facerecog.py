@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import os
 
+label_names = []
+
 def face_dectect(img):
 
     face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
@@ -13,20 +15,18 @@ def face_dectect(img):
         minSize=(100, 100)
     )
     
-    # for (x,y,w,h) in faces:
-        # face_crop = img[y:y+h,x:x+w]
-        # cv2.imwrite(face_save, face_crop)
-        # cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
-    
     return faces
 
-def process_train(input_folder):
+def train_and_save_model(input_folder):
     listfaces = []
     listlabels = []
 
     dirs = os.listdir(input_folder)
     for subdir in dirs:
-        label = int(subdir[:1]) # label mustbe int
+        label = subdir.split('-')
+        label_int = int(label[0]) #label must be int
+        # label = int(subdir[:1]) # label mustbe int
+        label_names.append(label[1])
 
         sub_path = input_folder + subdir + "/"
         for imgfile in os.listdir(sub_path):
@@ -35,8 +35,8 @@ def process_train(input_folder):
 
             #Detect face:
             faces = face_dectect(img)
-            # cv2.imgshow(img_rectangle)
-            if (isinstance(faces, tuple) ):
+            
+            if (isinstance(faces, tuple) ): #Not have face
                 continue
             
             for x,y,w,h in faces:
@@ -44,23 +44,19 @@ def process_train(input_folder):
                 face_crop = cv2.resize(face_crop, (100,100))
                 face_crop = cv2.cvtColor(face_crop, cv2.COLOR_BGR2GRAY)
                 listfaces.append(face_crop)
-                listlabels.append(label)
+                listlabels.append(label_int)
     
-    listlabels = np.array(listlabels) #opencv face_recognizer.train must be numpy array
-    # print(listlabels)
-
-    cv2.waitKey(1)
-    cv2.destroyAllWindows()
-    return listfaces, listlabels
+    listlabels = np.array(listlabels) 
+    
+    face_recognizer = cv2.face.LBPHFaceRecognizer_create() # Can use: EigenFaceRecognizer_create() or FisherFaceRecognizer_create()
+    face_recognizer.train(listfaces, listlabels)
+    face_recognizer.write("model.yml")
+    print("save model complete!")
 
 
 
 def predict_img(img):
 
-    label_name = ["","Nga", "Linh"]
-    
-    # img = cv2.imread(imgfile)
-    # print("process:"+ img)
     faces = face_dectect(img)
     # print("Detect faces:"+ imgfile)
 
@@ -69,9 +65,9 @@ def predict_img(img):
         face_crop = cv2.resize(face_crop, (100,100))
         face_crop = cv2.cvtColor(face_crop, cv2.COLOR_BGR2GRAY)
         label, confidence = face_recognizer.predict(face_crop)
-        print("Detected: "+ label_name[label])
+        text = label_names[label] + " " + str(int(confidence))
         cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
-        cv2.putText(img, label_name[label], (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 255, 0), 2)
+        cv2.putText(img, text, (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 255, 0), 2)
     
     cv2.imshow("img",img)
     # cv2.imwrite("out.jpg",img)
@@ -79,34 +75,28 @@ def predict_img(img):
 def predict_camera():
     
     # fps = int(capture.get(cv2.CAP_PROP_FPS))
-    # fps = 1
-    count =0
+    fps = 2
+    count = 0
     capture = cv2.VideoCapture(0)
     while(capture.isOpened()):
         ret, frame = capture.read()
-        predict_img(frame)
+        if(count%fps ==0):
+            predict_img(frame)
+        count+=1
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     capture.release()
     cv2.destroyAllWindows()
 
 
-def train_and_save_model():
-    faces, labels = process_train("train/")
-    face_recognizer.train(faces, labels)
-    face_recognizer.write("train.yml")
+train_and_save_model("train/")
 
-
+if not label_names:
+    label_names = ["Nga", "Linh", "Hang", "Tiffany"]
 face_recognizer = cv2.face.LBPHFaceRecognizer_create()
-# face_recognizer = cv2.face.EigenFaceRecognizer_create()
-# face_recognizer = cv2.face.FisherFaceRecognizer_create()
-
-# train_and_save_model()
-
-
-face_recognizer.read("train.yml")
+face_recognizer.read("model.yml")
 predict_camera()
 
-# imgfile = cv2.imread("linh.jpg")
 # predict_img(imgfile)
+# imgfile = cv2.imread("linh.jpg")
 
