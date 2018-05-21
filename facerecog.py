@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import statistics
 from math import log
 
 label_names = []
@@ -90,7 +91,7 @@ def predict_img(img, count):
 
     # return min_confidence
     
-def predict_camera(input_source):
+def predict_video(input_source):
     
     # fps = int(capture.get(cv2.CAP_PROP_FPS))
     frame_per_cap = 2
@@ -109,98 +110,94 @@ def predict_camera(input_source):
 
 
 def find_best_face(face_folder, range_conf):
-    eye_cascade = cv2.CascadeClassifier("model/haarcascade_eye_tree_eyeglasses.xml")
 
-    list_faces = []
+    eye_cascade = cv2.CascadeClassifier("model/haarcascade_eye_tree_eyeglasses.xml")
+    
+    vector_faces = []
+    label_faces  = []
+    list_confidence = []
+    list_straight = []
+    list_stdev = []
+    list_entropy = []
+    
     list_file = os.listdir(face_folder)
     threshold_confidence = int(list_file[0].split("-")[1]) + range_conf
     for imgfile in list_file:
+    
         confidence = int(imgfile.split('-')[1])
         if confidence > threshold_confidence:
             continue
+
         img = cv2.imread(face_folder + imgfile)
-        # print(width)
         face_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
         height, width = face_gray.shape[:2]
         x_face = 0 # Position x 
         eyes = eye_cascade.detectMultiScale(face_gray)
-        cv2.imshow(imgfile, img)
-        cv2.waitKey(100)
+        if (isinstance(eyes, tuple) or eyes.shape != (2,4) ):
+            continue
+
+        straight_score = ( abs(eyes[1][1] -eyes[0][1]) + abs(2*x_face + width - (eyes[0][0] + eyes[1][0] +eyes[1][2]) ) )/width
+        
+
         histogram = cv2.calcHist([face_gray],[0],None,[256],[0,256])
-        # plt.plot(histogram)
-        # plt.show()
-        print(histogram.shape)
+        num_pixel = height* width
+        hist_freq = [i[0]/num_pixel for i in histogram]
+        stdev = statistics.stdev(hist_freq)
+        
+
         entropy = 0
-        # print(histogram)
-        for i in histogram:
-            # print(i)
-            if i[0] >0:
-                entropy -= i[0] * log(i[0])
-                # print("entropyi", entropy)
-        print ("entropy: ",entropy)
+        for i in hist_freq:
+                if i >0:
+                    entropy -= i * log(i,2)
 
-        print("----")
-        mu1, sigma1 = 0, 1
-        mu2, sigma2 = 10, 1
-        s1 = np.random.normal(mu1, sigma1, 100000)
-        s2 = np.random.normal(mu2, sigma2, 100000)
-
-        hist1 = np.histogram(s1, bins=100, range=(-20,20), density=True)
-        data1 = hist1[0]
-        ent1 = -(data1*np.log(np.abs(data1))).sum() 
-        print("ent1:",s1)
-
-        if (isinstance(eyes, tuple) or eyes.shape != (2,4) ):
-            continue
-
-        straight_score =  abs(eyes[1][1] -eyes[0][1]) + abs(2*x_face + width - (eyes[0][0] + eyes[1][0] +eyes[1][2]) )
-        print(straight_score)
-
-
-
-def find_best_face2(face_folder, range_conf):
+        print("File:", imgfile)
+        print("Confidence:", confidence)
+        print("Straight score:",straight_score)
+        print("StandardError:", stdev)
+        print ("entropy: ", entropy)
+        print("-----")
+        list_confidence.append(confidence)
+        list_straight.append(straight_score)
+        list_stdev.append(stdev)
+        list_entropy.append(entropy)
+        
+        label_faces.append(imgfile)
     
-    eye_cascade = cv2.CascadeClassifier("model/haarcascade_eye_tree_eyeglasses.xml")
-    # haarcascade_eye_tree_eyeglasses haarcascade_lefteye_2splits haarcascade_eye
-    
-    list_file = os.listdir(face_folder)
-    min_straight_score = 1000
-    best_face = list_file[0]
-    threshold_confidence = int(list_file[0].split("-")[1]) + range_conf
-    best_face_crop = best_face
-    for imgfile in list_file:
-        confidence = imgfile.split("-")[1]
-        confidence = int(confidence)
-        if confidence > threshold_confidence:
-            continue
-        img = cv2.imread(face_folder + imgfile)
-        face_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        face_crop = cv2.resize(face_gray,(100,100))
 
-        eyes = eye_cascade.detectMultiScale(face_crop)
-        
-        for (ex,ey,ew,eh) in eyes:
-            cv2.rectangle(face_gray,(ex,ey),(ex+ew,ey+eh),(0,0,255),2)
-        # cv2.imshow("Face process", face_crop)
-        
-        if (isinstance(eyes, tuple) or eyes.shape != (2,4) ):
-            continue
-        
-        straight_score = 1000
-        straight_score = abs(eyes[1][1] -eyes[0][1]) + abs(eyes[0][0] + eyes[1][0] +eyes[1][2] - 100)
-        if(straight_score< min_straight_score):
-            min_straight_score = straight_score
-            best_face = imgfile
-            best_face_crop = face_crop
-        
+    # Confidence --> Acuracy: Min
+    # straight_score --> Straight Face: Min
+    # stdev --> Contrast : Min
+    # entropy --> Bluring : Max 
     
-    print("best face: ", best_face, min_straight_score)
-    face = cv2.imread("output/Linh/"+ best_face)
-    cv2.imshow("best face", face)
-    # cv2.imshow("best face crop", best_face_crop)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    confi_norm = normalize_data(list_confidence, 0)
+    strai_norm = normalize_data(list_straight, 0)
+    stdev_norm = normalize_data(list_stdev, 0)
+    entro_norm = normalize_data(list_entropy, 1)
 
+    for i in range(0, len(label_faces)):
+        vector_faces.append([confi_norm[i], strai_norm[i], stdev_norm[i], entro_norm[i]])
+    
+    for i, element in enumerate(vector_faces):
+        print(label_faces[i])
+        print(element)
+    norm = np.linalg.norm(vector_faces, axis=1)
+    print("Norm:", norm)
+    index_min = np.argmax(norm)
+    print("best_face: ", label_faces[index_min], min(norm))
+
+
+def normalize_data(data, type): # Type = 0: normalize normal (for entropy), Type = 1: Normalize revert
+    min_data = min(data)
+    max_data = max(data)
+
+    if type ==0:
+        for i, element in enumerate(data):
+            data[i] = (element - min_data)/ (max_data - min_data)
+    else:
+        for i, element in enumerate(data):
+            data[i] = (max_data - element)/ (max_data - min_data)
+    return data
 
 
 face_recognizer = cv2.face.LBPHFaceRecognizer_create()  # EigenFaceRecognizer_create() or FisherFaceRecognizer_create()
@@ -210,10 +207,7 @@ if not label_names:
     label_names = ["Nga", "Linh", "Jvermind","Tiffany"]
 
 face_recognizer.read("model/lbph_model.yml")
-predict_camera("input/aslongas.mp4") # "input/aslongas.mp4"
-# find_best_face("output/Linh/", 20)
+# predict_video("input/aslongas.mp4") # "input/aslongas.mp4"
+find_best_face("output/Tiffany/", 10)
 
-
-# imgfile = cv2.imread("12.jpg")
-# predict_img(imgfile, 1)
 
