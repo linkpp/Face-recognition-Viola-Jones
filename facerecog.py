@@ -183,8 +183,12 @@ def find_best_face(face_folder, range_conf):
         print(element)
     norm = np.linalg.norm(vector_faces, axis=1)
     print("Norm:", norm)
-    index_min = np.argmax(norm)
+    index_min = np.argmin(norm)
     print("best_face: ", label_faces[index_min], min(norm))
+    best_face = cv2.imread(face_folder + label_faces[index_min])
+    cv2.imshow("best face", best_face)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
 def normalize_data(data, type): # Type = 0: normalize normal (for entropy), Type = 1: Normalize revert
@@ -207,7 +211,7 @@ if not label_names:
     label_names = ["Nga", "Linh", "Jvermind","Tiffany"]
 
 face_recognizer.read("model/lbph_model.yml")
-# predict_video("input/aslongas.mp4") # "input/aslongas.mp4"
-find_best_face("output/Tiffany/", 10)
+predict_video(0) # "input/aslongas.mp4"
+# find_best_face("output/Tiffany/", 10)
 
 
