@@ -34,7 +34,6 @@ def train_and_save_model(input_folder):
     for subdir in dirs:
         label = subdir.split('-')
         label_int = int(label[0]) #label must be int
-        # label = int(subdir[:1]) # label mustbe int
         label_names.append(label[1])
 
         sub_path = input_folder + subdir + "/"
@@ -55,7 +54,6 @@ def train_and_save_model(input_folder):
     
     listlabels = np.array(listlabels) 
     
-    # face_recognizer = cv2.face.LBPHFaceRecognizer_create() # EigenFaceRecognizer_create() or FisherFaceRecognizer_create()
     face_recognizer.train(listfaces, listlabels)
     face_recognizer.write("model/lbph_model.yml")
     print("save model complete!")
@@ -89,7 +87,6 @@ def predict_img(img, count):
     cv2.imshow("img",img)
     cv2.imwrite("face.jpg",img)
 
-    # return min_confidence
     
 def predict_video(input_source):
     
@@ -165,6 +162,13 @@ def find_best_face(face_folder, range_conf):
         label_faces.append(imgfile)
     
 
+    if(not label_faces):  # No eyes detect
+        best_face = cv2.imread(face_folder + list_file[0])
+        cv2.imshow(list_file[0], best_face )
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        return
+    
     # Confidence --> Acuracy: Min
     # straight_score --> Straight Face: Min
     # stdev --> Contrast : Min
@@ -191,7 +195,7 @@ def find_best_face(face_folder, range_conf):
     cv2.destroyAllWindows()
 
 
-def normalize_data(data, type): # Type = 0: normalize normal (for entropy), Type = 1: Normalize revert
+def normalize_data(data, type): # Type = 0: normalize normal, Type = 1: Normalize revert (for entropy)
     min_data = min(data)
     max_data = max(data)
 
@@ -211,7 +215,7 @@ if not label_names:
     label_names = ["Nga", "Linh", "Jvermind","Tiffany"]
 
 face_recognizer.read("model/lbph_model.yml")
-predict_video(0) # "input/aslongas.mp4"
-# find_best_face("output/Tiffany/", 10)
+predict_video("input/aslongas.mp4") # "input/aslongas.mp4"
+find_best_face("output/Tiffany/", 10)
 
 
