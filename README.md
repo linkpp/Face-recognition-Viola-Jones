@@ -19,10 +19,19 @@ Run
 - run:
   + python3 main.py
   (see more in demo video)
+  
+Video demo: https://youtu.be/T2cMSd4WX9M <br/>
 
+Note
+-------------------------------
+The best face consider by 4 factor:
+- Accurancy
+- Straight face
+- Contrast
+- Entropy
 
 Contact
 ------------------------------
-Video demo: https://youtu.be/T2cMSd4WX9M
-Copyright by LinhPhan
+Copyright by LinhPhan <br/>
 Contact me: fb.com/deluxe.psk
+ 
