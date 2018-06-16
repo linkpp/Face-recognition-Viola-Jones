@@ -19,8 +19,6 @@ Run
 - run:
   + python3 main.py
   (see more in demo video)
-  
-Video demo: https://youtu.be/T2cMSd4WX9M <br/>
 
 Note
 -------------------------------
@@ -34,4 +32,5 @@ Contact
 ------------------------------
 Copyright by LinhPhan <br/>
 Contact me: https://fb.com/deluxe.psk
- 
+
+Video demo: https://youtu.be/T2cMSd4WX9M <br/>
