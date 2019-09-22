@@ -31,6 +31,6 @@ The best face consider by 4 factor:
 Contact
 ------------------------------
 Copyright by LinhPhan <br/>
-Contact me: https://fb.com/deluxe.psk
+Contact me: fb.com/linhpph
 
 Video demo: https://youtu.be/T2cMSd4WX9M <br/>
